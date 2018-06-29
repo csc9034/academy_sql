@@ -373,8 +373,387 @@ SELECT TO_NUMBER(TO_CHAR(e.HIREDATE, 'FMMM')) || '월' as "입사월"
 SELECT a."입사월" || '월'
       ,a."인원(명)"
   FROM (SELECT TO_NUMBER(TO_CHAR(e.HIREDATE, 'FMMM')) as "입사월"
-      ,COUNT(*) as "인원(명)"
-  FROM emp e
- GROUP BY TO_CHAR(e.HIREDATE, 'FMMM')
- ORDER BY "입사월") a
+              ,COUNT(*) as "인원(명)"
+          FROM emp e
+         GROUP BY TO_CHAR(e.HIREDATE, 'FMMM')
+         ORDER BY "입사월") a
 ;
+
+----------------------------------------------------------------------------
+-- DDL : DBMS 가 OBJECT(객체) 로 관리/인식하는 대상을
+--       생성, 수정, 삭제하는 언어
+--
+--    생성 : CREATE
+--    수정 : ALTER
+--    삭제 : DROP
+
+-- vs DML
+--    생성 : INSERT
+--    수정 : UPDATE
+--    삭제 : DELETE
+----------------------------------------------------------------------------
+/*
+  CREATE | ALTER | DROP {관리할 객체의 타입명}
+  
+  DBMS 의 객체들 타입
+  SCHEMA, DOMAIN, TABLE, VIEW, INDEX, SEQUENCE, USER, DATABASE
+*/
+
+CREATE TABLE 테이블이름
+( 컬럼1이름 데이터타입[(길이)] [DEFAULT 기본값] [컬럼의 제약사항]
+[,컬럼2이름 데이터타입[(길이)] [DEFAULT 기본값] [컬럼의 제약사항]]
+........
+[,컬럼n이름 데이터타입[(길이)] [DEFAULT 기본값] [컬럼의 제약사항]]
+);
+
+/* -------------------------------------------------
+   컬럼의 제약사항
+   -------------------------------------------------
+   1. PRIMARY KEY : 이 컬럼에 입력되는 값은 중복되지 않으며
+                    한 행을 유일하게 식별 가능한 값으로 설정
+                    NULL 데이터 입력이 불가능한 값이어야 한다.
+                    
+   2. FOREIGN KEY : 주로 JOIN에 사용되는 조건으로
+                    다른 테이블의 PRIMARY KEY 로 사용되었던 값이 등장
+   
+   3. UNIQUE      : 이 컬럼에 입력되는 값은 중복되지 않음을 보장
+                    NULL 일 수 있음
+   
+   4. NOT NULL    : 이 컬럼에 입력되는 값의 중복은 상관 없으나
+                    NULL 상태는 되지 않도록 보장
+                    
+   ==> PK : UNIQUE + NOT NULL 의 형태라는 것을 알 수 있다.
+
+*/
+
+-- 예) 아카데미 구성 인원 정보를 저장할 테이블을 정의
+/*
+  테이블 이름 : member
+  1. 멤버아이디       : member_id      : 문자 : VARCHAR2 : PK
+  2. 멤버 이름        : member_name    : 문자 : VARCHAR2 : NOT NULL
+  3. 전화번호 뒷자리  : phone          : 문자 : VARCHAR2 
+  4. 시스템등록일     : reg_date       : 날짜 : DATE     : DEFAULT
+  5. 사는 곳(동 이름) : address        : 문자 : VARCHAR2
+  6. 좋아하는 숫자    : like_number    : 숫자 : NUMBER
+*/
+-- 1. 테이블 생성 구문
+CREATE TABLE member
+(  member_id     VARCHAR2(3)  PRIMARY KEY
+ , member_name   VARCHAR2(15) NOT NULL
+ , phone         VARCHAR2(4) -- NULL 허용시 제약조건 비우면 됨
+ , reg_date      DATE         DEFAULT sysdate
+ , address       VARCHAR2(30)
+ , like_number   NUMBER
+);
+-- Table MEMBER이(가) 생성되었습니다.
+
+-- 2. 테이블 삭제 구문
+DROP TABLE 테이블이름;
+
+DROP TABLE member;
+-- Table MEMBER이(가) 삭제되었습니다.
+
+-- 3. 테이블 수정 구문
+/* ------------------------------------
+   수정의 종류
+   ------------------------------------
+   1. 컬럼을 추가 : ADD
+   2. 컬럼을 삭제 : DROP COLUMN
+   3. 컬럼을 수정 : MODIFY
+   ------------------------------------
+*/
+
+
+ALTER TABLE 테이블이름 {ADD | DROP COLUMN | MODIFY} .... ;
+
+-- 예) 생성한 member 테이블에 컬럼 2개 추가
+-- 1) ADD
+-- 출생 월 : birth_month : NUMBER 
+-- 성별    : gender      : VARCHAR2(1)
+
+ALTER TABLE member ADD 
+(  birth_month NUMBER
+ , gender      VARCHAR(1) CHECK (gender IN ('M', 'F'))
+);
+
+-- 예) 수정 한 member 테이블에서 like_number 컬럼을 삭제
+-- 2) DROP COLUMN
+ALTER TABLE 테이블이름 DROP COLUMN 컬럼이름;
+ALTER TABLE member DROP COLUMN like_number;
+-- Table MEMBER이(가) 변경되었습니다.
+
+-- 예) 출생월 컬럼을 숫자 2자리까지만으로 제한하도록 수정
+-- 3) MODIFY
+ALTER TABLE 테이블이름 MODIFY 컬럼이름 데이터타입(크기);
+ALTER TABLE member MODIFY birth_month NUMBER(2);
+-- Table MEMBER이(가) 변경되었습니다.
+
+------------------------------------------------------------
+-- 예로 사용할 member 테이블의 최종 형태 작성 구문
+
+CREATE TABLE member
+(  member_id     VARCHAR2(3)  PRIMARY KEY
+ , member_name   VARCHAR2(15) NOT NULL
+ , phone         VARCHAR2(4)  -- NULL 허용시 제약조건 비우면 됨
+ , reg_date      DATE         DEFAULT sysdate
+ , address       VARCHAR2(30)
+ , birth_month   NUMBER(2)
+ , gender        VARCHAR(1)   CHECK (gender IN ('M', 'F'))
+);
+-- 가장 단순화 된 테이블 정의 구문
+-- 제약조건을 각 컬럼 뒤에 바로 제약조건 이름 없이 생성
+
+
+
+-- 테이블 생성시 정의한 제약조건이 저장되는 형태
+-- DDL 로 정의 된 제약 조건은 시스템 카탈로그에 저장됨
+-- user_constraint 라는 테이블에 저장
+SELECT u.CONSTRAINT_NAME
+      ,u.CONSTRAINT_TYPE
+      ,u.TABLE_NAME
+  FROM user_constraints u
+ WHERE u.TABLE_NAME = 'MEMBER'
+;
+
+-- 제약조건에 이름을 부여해서 생성
+DROP TABLE member;
+-- Table MEMBER이(가) 삭제되었습니다.
+CREATE TABLE member
+(  member_id     VARCHAR2(3)  
+ , member_name   VARCHAR2(15)   NOT NULL
+ , phone         VARCHAR2(4)  
+ , reg_date      DATE           DEFAULT sysdate
+ , address       VARCHAR2(30)
+ , birth_month   NUMBER(2)
+ , gender        VARCHAR(1)   
+ , CONSTRAINT pk_member        PRIMARY KEY (member_id)
+ , CONSTRAINT ck_member_gender CHECK(gender IN ('M', 'F'))
+);
+
+-- 테이블 생성 기법 중 이미 존재하는 테이블로부터 복사 생성
+-- 예) 앞서 생성한 member 테이블을 복사 생성 : new_member
+DROP TABLE new_member ;
+CREATE TABLE new_member
+AS
+SELECT *
+  FROM member
+ WHERE 1 = 2 -- 항상 거짓이 되는 조건
+;
+-- ==> PK 설정은 복사되지 않고 테이블 구조만 복사됨
+DESC new_member;
+
+/*
+
+INSERT INTO "SCOTT"."MEMBER" (MEMBER_ID, MEMBER_NAME, PHONE, ADDRESS, BIRTH_MONTH, GENDER) VALUES ('M01', '유재성', '0238', '용운동', '3', 'M')
+INSERT INTO "SCOTT"."MEMBER" (MEMBER_ID, MEMBER_NAME, PHONE, ADDRESS, BIRTH_MONTH, GENDER) VALUES ('M02', '윤홍식', '4091', '오정동', '12', 'M')
+INSERT INTO "SCOTT"."MEMBER" (MEMBER_ID, MEMBER_NAME, PHONE, ADDRESS, BIRTH_MONTH, GENDER) VALUES ('M03', '윤한수', '9034', '오정동', '8', 'M')
+
+*/
+
+-- 오정동에 사는 인원의 정보만 복사해서 새 테이블 생성
+-- ojung_member
+
+DROP TABLE ojung_member;
+CREATE TABLE ojung_member
+AS
+SELECT *
+  FROM member
+ WHERE address = '오정동'
+;
+-- Table OJUNG_MEMBER이(가) 생성되었습니다.
+
+SELECT *
+  FROM ojung_member
+;
+
+-- 복사할 조건에 항상 참이 되는 조건을 주면 
+-- 모든 데이터를 복사하여 새 테이블 생성
+
+CREATE TABLE full_member
+AS
+SELECT *
+  FROM member
+ WHERE 1 = 1 -- 항상 참이 되는 조건
+;
+
+SELECT * 
+  FROM full_member
+;
+
+------------------------------------------------------------------------------------
+-- 테이블 수정할 때 주의사항
+
+-- 1) 컬럼에 데이터가 없을 때는 타입 변경, 크기 변경 모두 자유로움
+-- 2) 컬럼에 데이터가 들어 있을 때 데이터 크기는 동일 혹시 커지는 방향으로만 가능
+--    숫자는 정밀도 증가로만 허용
+-- 3) 기본값(DEFAULT) 설정은 수정 이후 입력값부터 적용
+
+
+-- 예)
+-- 오정동에 사는 멤버만 복사하 ojung_member 테이블을 생각해보자
+-- 주소가 '오정동' 으로 고정되어도 될 것 같다.
+
+-- 1) 기본 값 설정 전에 멤버 데이터 추가 : address 가 NULL 인 데이터
+INSERT INTO "SCOTT"."OJUNG_MEMBER" (MEMBER_ID, MEMBER_NAME, PHONE, BIRTH_MONTH, GENDER) VALUES ('M99', '홍길동', '0000', '9', 'M');
+
+-- 2) 홍길동 정보 입력 후 기본 값 설정
+ALTER TABLE ojung_member MODIFY (address DEFAULT '오정동');
+-- Table OJUNG_MEMBER이(가) 변경되었습니다.
+
+-- 3) 기본값 변경 후 새 멤버 추가
+INSERT INTO "SCOTT"."OJUNG_MEMBER" (MEMBER_ID, MEMBER_NAME, PHONE, BIRTH_MONTH, GENDER) 
+VALUES ('M98', '허균', '9999', '7', 'M');
+
+-- 이미 데이터가 들어있는 컬럼의 크기 변경
+-- 예) ojung_member 테이블의 출생월 birth_month 컬럼을 1칸으로 줄이면
+ALTER TABLE ojung_member MODIFY birth_month NUMBER(1);
+-- ORA-01440: column to be modified must be empty to decrease precision or scale
+ALTER TABLE ojung_member MODIFY birth_month NUMBER(10, 2);
+-- Table OJUNG_MEMBER이(가) 변경되었습니다.
+-- 숫자 데이터를 확장하는 방식으로 변경 성공
+
+-- 예) 출생월 birth_month 를 문자 2자리로 변경
+ALTER TABLE ojung_member MODIFY birth_month VARCHAR2(2);
+-- ORA-01439: column to be modified must be empty to change datatype
+-- 데이터 타입 변경을 위해서는 컬럼에 데이터가 없어야 함.
+
+SELECT * FROM ojung_member;
+
+--------------------------------------------------------------------------------
+-- (3) 데이터 무결성 제약 조건 처리 방법 4가지
+--- 1. 컬럼 정의할 때 제약 조건 이름 없이 바로 선언
+DROP TABLE main_table;
+
+CREATE TABLE main_table
+(  id       VARCHAR2(10)      PRIMARY KEY
+ , nickname VARCHAR2(30)      UNIQUE
+ , reg_date DATE              DEFAULT sysdate
+ , gender   VARCHAR2(1)       CHECK (gender IN ('F', 'M'))
+ , message  VARCHAR2(100)
+);
+
+DROP TABLE sub_table;
+CREATE TABLE sub_table
+(  id       VARCHAR2(10)      REFERENCES main_table(id)
+ , sub_code NUMBER(4)         NOT NULL
+ , sub_name VARCHAR(30)
+);
+
+-- 생성 된 제약조건 확인 쿼리
+SELECT u.CONSTRAINT_NAME
+      ,u.CONSTRAINT_TYPE
+      ,u.TABLE_NAME
+  FROM user_constraints u
+ WHERE u.TABLE_NAME IN ('MAIN_TABLE', 'SUB_TABLE')
+;
+--- 2. 컬럼 정의할 때 제약 조건 이름 주며 선언
+DROP TABLE main_table;
+CREATE TABLE main_table
+(  id       VARCHAR2(10) CONSTRAINT pk_main_table        PRIMARY KEY
+ , nickname VARCHAR2(30) CONSTRAINT uq_main_table_nick   UNIQUE
+ , reg_date DATE         DEFAULT sysdate
+ , gender   VARCHAR2(1)  CONSTRAINT ck_main_table_gender CHECK (gender IN ('F', 'M'))
+ , message  VARCHAR2(100)
+);
+
+DROP TABLE sub_table;
+CREATE TABLE sub_table
+(  id       VARCHAR2(10) CONSTRAINT fk_sub_table REFERENCES main_table(id)
+ , sub_code NUMBER(4)    NOT NULL
+ , sub_name VARCHAR(30)
+);
+
+--- 3. 컬럼 정의 후 제약 조건 따로 선언
+DROP TABLE main_table;
+CREATE TABLE main_table
+(  id       VARCHAR2(10)
+ , nickname VARCHAR2(30) 
+ , reg_date DATE         DEFAULT sysdate
+ , gender   VARCHAR2(1)  
+ , message  VARCHAR2(100)
+ , CONSTRAINT pk_main_table        PRIMARY KEY(id)
+ , CONSTRAINT uq_main_table_nick   UNIQUE(nickname)
+ , CONSTRAINT ck_main_table_gender CHECK (gender IN ('F', 'M'))
+);
+
+DROP TABLE sub_table;
+CREATE TABLE sub_table
+(  id       VARCHAR2(10) 
+ , sub_code NUMBER(4)    NOT NULL
+ , sub_name VARCHAR(30)
+ , CONSTRAINT fk_sub_table FOREIGN KEY(id) REFERENCES main_table(id)
+ -- sub_table 의 키는 id, sub_code 를 묶어서 복합키 형태로 설정
+ , CONSTRAINT pk_sub_table PRIMARY KEY (id, sub_code)
+ -- 복합키로 PK를 설정 할 때는 제약조건을 따로 설정하는 방법으로만 가능
+
+);
+--- 4. 테이블 정의 후 테이블 수정(ALTER TABLE) 로 제약조건 추가
+DROP TABLE sub_table;
+DROP TABLE main_table;
+
+-- 제약 조건이 없는 테이블 생성
+CREATE TABLE main_table
+(  id       VARCHAR2(10)
+ , nickname VARCHAR2(30) 
+ , reg_date DATE         DEFAULT sysdate
+ , gender   VARCHAR2(1)  
+ , message  VARCHAR2(100)
+);
+
+-- 제약 조건 사후 추가
+ALTER TABLE main_table ADD
+(  CONSTRAINT pk_main_table4        PRIMARY KEY(id)
+ , CONSTRAINT uq_main_table_nick4   UNIQUE(nickname)
+ , CONSTRAINT ck_main_table_gender4 CHECK (gender IN ('F', 'M'))
+);
+
+-- 제약조건 없이 테이블 생성
+CREATE TABLE sub_table
+(  id       VARCHAR2(10) 
+ , sub_code NUMBER(4)    NOT NULL
+ , sub_name VARCHAR(30)
+);
+
+-- 제약조건 사후 추가
+ALTER TABLE sub_table ADD
+(  CONSTRAINT fk_sub_table4 FOREIGN KEY(id) REFERENCES main_table(id)
+ -- sub_table 의 키는 id, sub_code 를 묶어서 복합키 형태로 설정
+ , CONSTRAINT pk_sub_table4 PRIMARY KEY (id, sub_code)
+ -- 복합키로 PK를 설정 할 때는 제약조건을 따로 설정하는 방법으로만 가능
+);
+
+--- 테이블 이름의 변경 : RENAME
+-- ojung_member ====> member_of_ojung
+RENAME ojung_member TO member_of_ojung;
+-- 테이블 이름이 변경되었습니다.
+DESC ojung_member;
+-- ORA-04043: ojung_member 객체가 존재하지 않습니다.
+DESC member_of_ojung;
+-- 테이블 이름 다시 변경
+RENAME member_of_ojung TO ojung_member;
+
+--- 테이블 삭제 : DROP
+
+
+DROP TABLE main_table;
+-- ORA-02449: unique/primary keys in table referenced by foreign keys
+-- sub_table 의 id 컬럼이 main_table 의 id 컬럼을 참조 하기 때문
+-- 테이블 삭제에 순서가 필요
+
+-- 참조 관계에 상관 없이 테이블 바로 삭제
+DROP TABLE main_table CASCADE CONSTRAINT;
+-- sub_table 과의 참조 관계가 끊어지면 바로 삭제 됨.
+
+-- 생성 된 제약조건 확인 쿼리
+SELECT u.CONSTRAINT_NAME
+      ,u.CONSTRAINT_TYPE
+      ,u.TABLE_NAME
+  FROM user_constraints u
+ WHERE u.TABLE_NAME IN ('MAIN_TABLE', 'SUB_TABLE')
+;
+
+/* -- sub_table 에 생성되어 있던 R 이 같이 제거되었음을 확인
+--------------------------------------------------------------
+SYS_C007933	  C	SUB_TABLE
+PK_SUB_TABLE4	P	SUB_TABLE
+*/
