@@ -65,7 +65,7 @@ DESC user_views
 ;
 SELECT u.VIEW_NAME
       ,u.TEXT
-      ,U.READ_ONLY
+      ,u.READ_ONLY
   FROM user_views u
 ;
 

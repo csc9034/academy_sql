@@ -470,9 +470,9 @@ VAR v_number_bind VARCHAR2(20)
 
 -- 4. EXEC : 실행
 -- 4.1BIND 변수에 1000을 먼저 저장
-EXEC :v_number_bind := 1000
+EXEC :v_number_bind := 1000;
 -- 4.2 1000이 저장된 BIND 변수를 프로시저에 전달
-EXEC sp_chng_number_format(:v_number_bind)
+EXEC sp_chng_number_format(:v_number_bind);
 /*
 PL/SQL 프로시저가 성공적으로 완료되었습니다.
 
